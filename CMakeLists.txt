@@ -49,6 +49,69 @@ set_target_properties(computo_lua PROPERTIES
     CXX_STANDARD 17
 )
 
+# Test targets
+find_program(LUA_EXECUTABLE 
+    NAMES lua5.4 lua54 lua
+    DOC "Path to Lua executable"
+)
+
+if(LUA_EXECUTABLE)
+    # Add test target that runs all tests
+    add_custom_target(test
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_basic.lua
+        DEPENDS computo_lua
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running ComputoLua test suite"
+        VERBATIM
+    )
+    
+    # Individual test targets
+    add_custom_target(test-basic
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_basic.lua
+        DEPENDS computo_lua
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running basic functionality tests"
+        VERBATIM
+    )
+    
+    add_custom_target(test-examples
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/simple.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/dsl_example.lua
+        DEPENDS computo_lua
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running example demonstrations"
+        VERBATIM
+    )
+    
+    add_custom_target(test-inputs
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/test_object_syntax.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/inputs_test.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/multiple_inputs_test.lua
+        DEPENDS computo_lua
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running inputs and object syntax tests"
+        VERBATIM
+    )
+    
+    add_custom_target(test-all
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_basic.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/simple.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/dsl_example.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/test_object_syntax.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/inputs_test.lua
+        COMMAND ${LUA_EXECUTABLE} ${CMAKE_SOURCE_DIR}/examples/multiple_inputs_test.lua
+        DEPENDS computo_lua
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running complete test suite"
+        VERBATIM
+    )
+    
+    message(STATUS "Lua found: ${LUA_EXECUTABLE}")
+    message(STATUS "Test targets available: test, test-basic, test-examples, test-inputs, test-all")
+else()
+    message(WARNING "Lua executable not found - test targets disabled")
+endif()
+
 # Install targets
 # Install the compiled C module
 install(TARGETS computo_lua

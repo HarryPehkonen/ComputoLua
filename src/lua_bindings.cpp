@@ -148,25 +148,45 @@ auto json_to_lua_value(lua_State* lua_state, const json& json_val) -> void {
 
 } // anonymous namespace
 
-// Lua function: computo.execute(script_table)
+// Lua function: computo.execute(script_table) or computo.execute(script_table, inputs_array)
 extern "C" int lua_computo_execute(lua_State* lua_state) {
     try {
         // Check argument count
         int argc = lua_gettop(lua_state);
-        if (argc != 1) {
-            return luaL_error(lua_state, "execute() expects exactly 1 argument, got %d", argc);
+        if (argc < 1 || argc > 2) {
+            return luaL_error(lua_state, "execute() expects 1 or 2 arguments, got %d", argc);
         }
         
-        // Check that argument is a table
+        // Check that first argument is a table
         if (!lua_istable(lua_state, 1)) {
-            return luaL_error(lua_state, "execute() argument must be a table");
+            return luaL_error(lua_state, "execute() first argument (script) must be a table");
         }
         
         // Convert Lua table to JSON
         json script = lua_value_to_json(lua_state, 1);
         
-        // Execute using Computo
-        json result = computo::execute(script);
+        // Handle optional inputs argument
+        std::vector<json> inputs;
+        if (argc == 2) {
+            if (lua_istable(lua_state, 2)) {
+                // Convert inputs table to JSON array
+                json inputs_json = lua_value_to_json(lua_state, 2);
+                if (inputs_json.is_array()) {
+                    // Convert JSON array to vector
+                    for (const auto& input : inputs_json) {
+                        inputs.push_back(input);
+                    }
+                } else {
+                    // Single input object
+                    inputs.push_back(inputs_json);
+                }
+            } else if (!lua_isnil(lua_state, 2)) {
+                return luaL_error(lua_state, "execute() second argument (inputs) must be a table or nil");
+            }
+        }
+        
+        // Execute using Computo with inputs
+        json result = computo::execute(script, inputs);
         
         // Convert result back to Lua and push onto stack
         json_to_lua_value(lua_state, result);

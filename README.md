@@ -59,8 +59,7 @@ cmake -B build
 cmake --build build
 
 # Optional: Run tests
-lua5.4 tests/test_basic.lua
-lua5.4 examples/simple.lua
+cmake --build build --target test
 ```
 
 ### Build Options
@@ -81,20 +80,29 @@ cmake -B build -DCMAKE_INSTALL_PREFIX=/usr/local
 ComputoLua includes comprehensive tests and examples:
 
 ```bash
-# Basic functionality tests
+# Run basic test suite
+cmake --build build --target test
+
+# Run all tests and examples  
+cmake --build build --target test-all
+
+# Run specific test categories
+cmake --build build --target test-basic      # Core functionality tests
+cmake --build build --target test-examples   # Usage examples
+cmake --build build --target test-inputs     # Input handling and object syntax tests
+
+# Alternative: Change to build directory
+cd build && make test-all
+
+# Run individual files manually (from project root)
 lua5.4 tests/test_basic.lua
-
-# Simple usage examples  
 lua5.4 examples/simple.lua
-
-# DSL demonstrations
 lua5.4 examples/dsl_example.lua
-
-# Advanced DSL patterns
-lua5.4 examples/advanced_dsl.lua
+lua5.4 examples/inputs_test.lua
+lua5.4 examples/multiple_inputs_test.lua
 ```
 
-All tests should pass with   markers and "All tests passed!" message.
+All tests should pass with ✅ markers and "All tests passed!" message.
 
 ## Installation
 
@@ -187,11 +195,20 @@ C.if_then_else(condition, then_expr, else_expr)
 
 ```lua
 C.var("/path")         -- Variable reference
-C.input("/path")       -- Input data reference
+C.input("/path")       -- First input data reference (syntactic sugar)
+C.inputs("/path")      -- Multiple inputs with explicit indexing
 C.let(bindings, body)  -- Variable binding
 
--- Example:
+-- Examples:
 local script = C.let({x = 10, y = 5}, C.add(C.var("/x"), C.var("/y")))
+
+-- Single input access
+local first_user = C.input("/users/0/name")                    -- {"$input", "/users/0/name"}
+
+-- Multiple inputs access  
+local first_user = C.inputs("/0/users/0/name")                 -- {"$inputs", "/0/users/0/name"}
+local config_theme = C.inputs("/1/config/theme")               -- {"$inputs", "/1/config/theme"}
+local metadata_ver = C.inputs("/2/metadata/version")           -- {"$inputs", "/2/metadata/version"}
 ```
 
 ### Lambda Expressions
@@ -227,8 +244,10 @@ C.append(arr1, arr2)   -- Concatenate arrays
 ### Utility Functions
 
 ```lua
-C.execute(expr)           -- Execute expression
-C.pretty_print(expr)      -- Debug print expression structure
+C.execute(expr)                    -- Execute expression (single input)
+C.execute(expr, input_data)        -- Execute with single input
+C.execute_with_inputs(expr, inputs_array)  -- Execute with multiple inputs
+C.pretty_print(expr)               -- Debug print expression structure
 ```
 
 ## Examples
@@ -271,6 +290,35 @@ local calculation = C.let(
     C.mul(C.var("/pi"), C.mul(C.var("/radius"), C.var("/radius")))
 )
 print(C.execute(calculation))  -- ~78.54 (area of circle)
+```
+
+### Multiple Inputs
+
+```lua
+local C = require("lua.computo_dsl")
+
+-- Prepare multiple input data
+local users_data = {users = {{name = "Alice", age = 25}, {name = "Bob", age = 35}}}
+local config_data = {config = {theme = "dark", debug = true}}
+local meta_data = {metadata = {version = "1.0", build = 42}}
+
+-- Build script that accesses different inputs
+local script = {
+    first_user = C.input("/users/0/name"),           -- First input (syntactic sugar)
+    theme = C.inputs("/1/config/theme"),             -- Second input
+    version = C.inputs("/2/metadata/version"),       -- Third input
+    sum_age_build = C.add(
+        C.inputs("/0/users/0/age"),                  -- Alice's age from input 0
+        C.inputs("/2/metadata/build")                -- Build number from input 2
+    )
+}
+
+-- Execute with multiple inputs
+local result = C.execute_with_inputs(script, {users_data, config_data, meta_data})
+print("First user:", result.first_user)             -- "Alice"
+print("Theme:", result.theme)                       -- "dark"  
+print("Version:", result.version)                   -- "1.0"
+print("Age + Build:", result.sum_age_build)         -- 67 (25 + 42)
 ```
 
 ### Error Handling

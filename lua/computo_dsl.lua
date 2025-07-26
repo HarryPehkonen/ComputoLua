@@ -48,6 +48,11 @@ function M.input(path)
     end
 end
 
+-- Multiple inputs access (explicit indexing)
+function M.inputs(path)
+    return {"$inputs", path}
+end
+
 -- Control flow
 function M.if_then_else(condition, then_expr, else_expr)
     return {"if", condition, then_expr, else_expr}
@@ -121,20 +126,22 @@ end
 
 -- Convenience function to build and execute in one call
 function M.execute(script_expr, input_data)
-    local inputs = {}
     if input_data then
-        table.insert(inputs, input_data)
+        -- If input_data is provided, pass it as single input
+        return computo_core.execute(script_expr, input_data)
+    else
+        -- No inputs provided
+        return computo_core.execute(script_expr)
     end
-    
-    -- Use the core binding to execute
-    return computo_core.execute(script_expr)
 end
 
--- Alternative execute that takes explicit inputs array
+-- Execute with explicit inputs array (multiple inputs)
 function M.execute_with_inputs(script_expr, inputs_array)
-    -- Note: Current binding doesn't support inputs array yet
-    -- This is a placeholder for future enhancement
-    return computo_core.execute(script_expr)
+    if inputs_array then
+        return computo_core.execute(script_expr, inputs_array)
+    else
+        return computo_core.execute(script_expr)
+    end
 end
 
 -- Metatable magic to allow operator overloading (optional enhancement)
